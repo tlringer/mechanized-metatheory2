@@ -691,7 +691,7 @@ Module has_sem_type.
     eapply step.star_trans.
     eapply step.star_app1. now eauto.
     eapply step.star_trans.
-    eapply step.star_app2. now eauto.
+    eapply step.star_app2; now eauto.
     eauto using step.step_l, step.beta.
   Qed.
 
@@ -729,7 +729,7 @@ Proof.
   - apply has_sem_type.ff.
   - apply has_type.wf in H.
     apply has_sem_type.abs; auto.
-  - eapply has_sem_type.app; eauto.
+  - eapply has_sem_type.app; eauto. (* Note the extra case here *)
   - apply has_sem_type.If; auto.
 Qed.
 Print Assumptions fundamental.

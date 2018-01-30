@@ -1320,6 +1320,155 @@ Module step.
       auto. (* two cases now, note the semicolon *)
   Qed.
 
+  (* IHStar : forall e1 : expr.t,
+         value.t e1 -> star (expr_ast.app e1 e2) (expr_ast.app e1 y) *)
+
+  (* IHStar : forall e1 : expr.t,
+         star (expr_ast.app e1 e2) (expr_ast.app e1 y) *)
+
+  Definition patch:
+    forall e1 e2 e2',
+      value.t e1 ->
+      star e2 e2' ->
+      (value.t e1 -> star (expr_ast.app e1 e2) (expr_ast.app e1 e2')) ->
+      star (expr_ast.app e1 e2) (expr_ast.app e1 e2').
+  Proof.
+    intros. apply H1. apply H.
+  Qed. 
+  (* PUMPKIN PATCH should be able to find the above automatically, but generalized *)
+
+  Definition patch2:
+    forall e1 e2 e2' P,
+      value.t e1 ->
+      (value.t e1 -> P (expr_ast.app e1 e2) (expr_ast.app e1 e2')) ->
+      P (expr_ast.app e1 e2) (expr_ast.app e1 e2').
+  Proof.
+    intros e1 e2 e2' P H H0. apply H0. apply H.
+  Qed. 
+
+Definition patch_by_hand (e1 e2 e2' : expr.t) (Val1 : value.t e1) :=
+  (fun (y z : expr.t) (H : step.t y z) (_ : clos_refl_trans_n1 expr.t step.t e2 y)
+       (IHStar : forall (e3 : expr.t), value.t e3 -> step.star (expr_ast.app e3 e2) (expr_ast.app e3 y)) 
+       (e3 : expr.t) 
+       (Val2 : value.t e3) =>
+    IHStar e3 Val2).   (* Note how star is removed *)  
+
+(*
+add_valuet_beta.step.star_app2 = 
+  fun (e1 e2 e2' : expr.t) (Star : step.star e2 e2') =>
+    clos_refl_trans_n1_ind
+      expr.t
+      step.t
+      e2
+      (fun (e2'0 : expr.t) =>
+        forall (e3 : expr.t),
+        step.star (expr_ast.app e3 e2) (expr_ast.app e3 e2'0))
+      (fun (e3 : expr.t) =>
+        rtn1_refl expr.t step.t (expr_ast.app e3 e2))
+      (fun (y z : expr.t) (H : step.t y z) (_ : clos_refl_trans_n1 expr.t step.t e2 y)
+           (IHStar : forall (e3 : expr.t), step.star (expr_ast.app e3 e2) (expr_ast.app e3 y))
+           (e3 : expr.t) =>
+        Relation_Operators.rtn1_trans
+          expr.t
+          step.t
+          (expr_ast.app e3 e2)
+          (expr_ast.app e3 y)
+          (expr_ast.app e3 z)
+          (step.app2 e3 y z H)
+          (IHStar e3))
+      e2' 
+      Star
+      e1
+: forall (e1 e2 e2' : expr.t),
+    step.star e2 e2' -> step.star (expr_ast.app e1 e2) (expr_ast.app e1 e2')
+*)
+
+(*
+add_valuet_beta.step.star_app2 = 
+  fun (e1 e2 e2' : expr.t) (Val1 : value.t e1) (Star : step.star e2 e2') =>
+    clos_refl_trans_n1_ind
+      expr.t
+      step.t
+      e2
+      (fun (e2'0 : expr.t) =>
+        forall (e3 : expr.t),
+          value.t e3 ->
+          step.star (expr_ast.app e3 e2) (expr_ast.app e3 e2'0))
+      (fun (e3 : expr.t) =>
+        rtn1_refl expr.t step.t (expr_ast.app e3 e2))
+      (fun (y z : expr.t) (H : step.t y z) (_ : clos_refl_trans_n1 expr.t step.t e2 y)
+           (IHStar : forall (e3 : expr.t), value.t e3 -> step.star (expr_ast.app e3 e2) (expr_ast.app e3 y))
+           c
+        Relation_Operators.rtn1_trans
+          expr.t
+          step.t
+          (expr_ast.app e3 e2)
+          (expr_ast.app e3 y)
+          (expr_ast.app e3 z)
+          (step.app2 e3 y z H)
+          (IHStar e3))
+      e2' 
+      Star
+      e1
+: forall (e1 e2 e2' : expr.t),
+    step.star e2 e2' -> step.star (expr_ast.app e1 e2) (expr_ast.app e1 e2')
+
+
+add_valuet_app2.step.star_app2 =
+  fun (e1 e2 e2' : expr.t) (Val1 : value.t e1) (Star : step.star e2 e2') =>
+    clos_refl_trans_n1_ind
+      expr.t
+      step.t
+      e2
+      (fun (e2'0 : expr.t) =>
+        forall (e3 : expr.t),
+          value.t e3 ->
+          step.star (expr_ast.app e3 e2) (expr_ast.app e3 e2'0))
+      (fun (e3 : expr.t) (_ : value.t e3) =>
+        rtn1_refl expr.t step.t (expr_ast.app e3 e2))
+      (fun (y z : expr.t) (H : step.t y z) (_ : clos_refl_trans_n1 expr.t step.t e2 y)
+           (IHStar : forall (e3 : expr.t), value.t e3 -> step.star (expr_ast.app e3 e2) (expr_ast.app e3 y))
+           (e3 : expr.t)
+           (Val2 : value.t e3) =>
+        Relation_Operators.rtn1_trans
+          expr.t
+          step.t
+          (expr_ast.app e3 e2)
+          (expr_ast.app e3 y)
+          (expr_ast.app e3 z)
+          (step.app2 e3 y z Val2 H) 
+          (IHStar e3 Val2))
+      e2'
+      Star
+      e1
+      Val1
+: forall (e1 e2 e2' : expr.t),
+    value.t e1 ->
+    step.star e2 e2' -> step.star (expr_ast.app e1 e2) (expr_ast.app e1 e2')
+*)
+
+  Lemma star_app2' :
+    forall e1 e2 e2',
+      value.t e1 -> (* new _ : value.t e1 *)
+      star e2 e2' ->
+      star (expr.app e1 e2) (expr.app e1 e2').
+  Proof.
+    intros e1 e2 e2' Val1 Star. (* new Val1 : value.t eq *)
+    revert e1 Val1. (* need to revert this too, now *)
+    induction Star; intros e1 Val1.
+    - constructor.
+    - econstructor; [|apply (patch_by_hand e1 e2 y Val1 y z H Star IHStar e1 Val1)].
+      auto.
+  Qed.
+
+  (* OK, so we can patch the inductive hypothesis, basically! *)
+  (* Then we know exactly what arguments to apply it to in order. *)
+
+  (* TODO define patch that transforms IH to a new IH and rewrite proof 
+     with that. *)
+
+  (* TODO write star_app2 again with some variant of patch *)
+
   Lemma star_If :
     forall e1 e1' e2 e3,
       star e1 e1' ->
@@ -1780,3 +1929,9 @@ list_ind (fun l0 : list T => Q T t l0) (le_l T [])
  * 2. After, determine how to reconcile that with the theory of ornaments.
  *)
 
+(*
+ * The patch needs to somehow capture the extra case and figure out
+ * how to extract the right term from the context to handle it.
+ * In this case it won't be any more efficient than auto, probably,
+ * but whatever.
+ *)
