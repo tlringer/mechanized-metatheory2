@@ -1351,101 +1351,7 @@ Definition patch_by_hand (e1 e2 e2' : expr.t) (Val1 : value.t e1) :=
        (IHStar : forall (e3 : expr.t), value.t e3 -> step.star (expr_ast.app e3 e2) (expr_ast.app e3 y)) 
        (e3 : expr.t) 
        (Val2 : value.t e3) =>
-    IHStar e3 Val2).   (* Note how star is removed *)  
-
-(*
-add_valuet_beta.step.star_app2 = 
-  fun (e1 e2 e2' : expr.t) (Star : step.star e2 e2') =>
-    clos_refl_trans_n1_ind
-      expr.t
-      step.t
-      e2
-      (fun (e2'0 : expr.t) =>
-        forall (e3 : expr.t),
-        step.star (expr_ast.app e3 e2) (expr_ast.app e3 e2'0))
-      (fun (e3 : expr.t) =>
-        rtn1_refl expr.t step.t (expr_ast.app e3 e2))
-      (fun (y z : expr.t) (H : step.t y z) (_ : clos_refl_trans_n1 expr.t step.t e2 y)
-           (IHStar : forall (e3 : expr.t), step.star (expr_ast.app e3 e2) (expr_ast.app e3 y))
-           (e3 : expr.t) =>
-        Relation_Operators.rtn1_trans
-          expr.t
-          step.t
-          (expr_ast.app e3 e2)
-          (expr_ast.app e3 y)
-          (expr_ast.app e3 z)
-          (step.app2 e3 y z H)
-          (IHStar e3))
-      e2' 
-      Star
-      e1
-: forall (e1 e2 e2' : expr.t),
-    step.star e2 e2' -> step.star (expr_ast.app e1 e2) (expr_ast.app e1 e2')
-*)
-
-(*
-add_valuet_beta.step.star_app2 = 
-  fun (e1 e2 e2' : expr.t) (Val1 : value.t e1) (Star : step.star e2 e2') =>
-    clos_refl_trans_n1_ind
-      expr.t
-      step.t
-      e2
-      (fun (e2'0 : expr.t) =>
-        forall (e3 : expr.t),
-          value.t e3 ->
-          step.star (expr_ast.app e3 e2) (expr_ast.app e3 e2'0))
-      (fun (e3 : expr.t) =>
-        rtn1_refl expr.t step.t (expr_ast.app e3 e2))
-      (fun (y z : expr.t) (H : step.t y z) (_ : clos_refl_trans_n1 expr.t step.t e2 y)
-           (IHStar : forall (e3 : expr.t), value.t e3 -> step.star (expr_ast.app e3 e2) (expr_ast.app e3 y))
-           c
-        Relation_Operators.rtn1_trans
-          expr.t
-          step.t
-          (expr_ast.app e3 e2)
-          (expr_ast.app e3 y)
-          (expr_ast.app e3 z)
-          (step.app2 e3 y z H)
-          (IHStar e3))
-      e2' 
-      Star
-      e1
-: forall (e1 e2 e2' : expr.t),
-    step.star e2 e2' -> step.star (expr_ast.app e1 e2) (expr_ast.app e1 e2')
-
-
-add_valuet_app2.step.star_app2 =
-  fun (e1 e2 e2' : expr.t) (Val1 : value.t e1) (Star : step.star e2 e2') =>
-    clos_refl_trans_n1_ind
-      expr.t
-      step.t
-      e2
-      (fun (e2'0 : expr.t) =>
-        forall (e3 : expr.t),
-          value.t e3 ->
-          step.star (expr_ast.app e3 e2) (expr_ast.app e3 e2'0))
-      (fun (e3 : expr.t) (_ : value.t e3) =>
-        rtn1_refl expr.t step.t (expr_ast.app e3 e2))
-      (fun (y z : expr.t) (H : step.t y z) (_ : clos_refl_trans_n1 expr.t step.t e2 y)
-           (IHStar : forall (e3 : expr.t), value.t e3 -> step.star (expr_ast.app e3 e2) (expr_ast.app e3 y))
-           (e3 : expr.t)
-           (Val2 : value.t e3) =>
-        Relation_Operators.rtn1_trans
-          expr.t
-          step.t
-          (expr_ast.app e3 e2)
-          (expr_ast.app e3 y)
-          (expr_ast.app e3 z)
-          (step.app2 e3 y z Val2 H) 
-          (IHStar e3 Val2))
-      e2'
-      Star
-      e1
-      Val1
-: forall (e1 e2 e2' : expr.t),
-    value.t e1 ->
-    step.star e2 e2' -> step.star (expr_ast.app e1 e2) (expr_ast.app e1 e2')
-*)
+    IHStar e3 Val2).  (* Note how star is removed since we induct over it *)  
 
   Lemma star_app2' :
     forall e1 e2 e2',
@@ -1463,11 +1369,72 @@ add_valuet_app2.step.star_app2 =
 
   (* OK, so we can patch the inductive hypothesis, basically! *)
   (* Then we know exactly what arguments to apply it to in order. *)
+  (* I think the idea behind having the whole environment here is that
+     the patch can transform the new hypothesis in any way (even though
+     it's trivial in this case, just like in the list case), and it
+     can also refer to other variables or recurse if wanted. *)
+
+(* So these actually are patches in the sense of the ornaments in ML paper. *)
 
   (* TODO define patch that transforms IH to a new IH and rewrite proof 
      with that. *)
 
   (* TODO write star_app2 again with some variant of patch *)
+
+  (* TODO generalized version of patch *)
+
+Print expr_ast.t_ind.
+
+(* expr_ast.t_ind = 
+fun P : expr_ast.t -> Prop => expr_ast.t_rect P
+     : forall P : expr_ast.t -> Prop,
+       (forall x : nat, P (expr_ast.var x)) ->
+       (forall t : expr_ast.t, P t -> P (expr_ast.abs t)) ->
+       (forall t : expr_ast.t,
+        P t -> forall t0 : expr_ast.t, P t0 -> P (expr_ast.app t t0)) ->
+       P expr_ast.tt ->
+       P expr_ast.ff ->
+       (forall t : expr_ast.t,
+        P t ->
+        forall t0 : expr_ast.t,
+        P t0 -> forall t1 : expr_ast.t, P t1 -> P (expr_ast.If t t0 t1)) ->
+       forall t : expr_ast.t, P t *)
+
+(* TODO the generalized version should probably work over any property of an expr_ast *)
+(* It's weird though because we're using a different induction principle for these proofs *)
+(* TODO try them with standard expr_ind first, just to see what happens, since that case
+   is less complicated. *)
+
+(* TODO:
+ Lemma star_app2_expr_ind :
+    forall e1 e2 e2',
+      value.t e1 -> (* new _ : value.t e1 *)
+      star e2 e2' ->
+      star (expr.app e1 e2) (expr.app e1 e2').
+  Proof.
+    intros e1 e2 e2' Val1 Star. (* new Val1 : value.t eq *)
+    revert e1 Val1. (* need to revert this too, now *)
+    induction e2; intros e1 Val1.
+    ...
+  Qed.
+*)
+
+(* TODO also: Map to change in the other inductive type/induction principle *)
+
+(* Generalize this, now *)
+Definition patch_by_hand_2 (e1 e2 e2' : expr.t) (Val1 : value.t e1) (P : expr.t -> expr.t -> Prop) :=
+  (fun (y z : expr.t) (H : step.t y z) (_ : clos_refl_trans_n1 expr.t step.t e2 y)
+       (IHStar : forall (e3 : expr.t), value.t e3 -> P (expr_ast.app e3 e2) (expr_ast.app e3 y))
+       (e3 : expr.t)
+       (Val2 : value.t e3) =>
+    IHStar e3 Val2).  
+(* TODO incorrect *)
+
+
+
+
+
+
 
   Lemma star_If :
     forall e1 e1' e2 e3,
@@ -1617,6 +1584,8 @@ End add_valuet_app2.
  * and equivalent modules (expr_ast.t and expr.t) are rewritten as the same type
  * for clarity of differencing.
  *)
+
+Print clos_refl_trans_n1_ind.
 
 (*
 old.step.star_app2 = 
