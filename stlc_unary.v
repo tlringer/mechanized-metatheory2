@@ -691,9 +691,11 @@ Module has_sem_type.
     eapply step.star_trans.
     eapply step.star_app1. now eauto.
     eapply step.star_trans.
-    eapply step.star_app2; now eauto.
+    eapply step.star_app2; now eauto. (* note the extra case here *)
     eauto using step.step_l, step.beta.
   Qed.
+
+  Print app.
 
   Lemma If :
     forall G e1 e2 e3 ty,
@@ -729,7 +731,7 @@ Proof.
   - apply has_sem_type.ff.
   - apply has_type.wf in H.
     apply has_sem_type.abs; auto.
-  - eapply has_sem_type.app; eauto. (* Note the extra case here *)
+  - eapply has_sem_type.app; eauto.
   - apply has_sem_type.If; auto.
 Qed.
 Print Assumptions fundamental.

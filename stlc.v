@@ -1320,6 +1320,8 @@ Module step.
       auto. (* two cases now, note the semicolon *)
   Qed.
 
+  Print star_app2.
+
   (* IHStar : forall e1 : expr.t,
          value.t e1 -> star (expr_ast.app e1 e2) (expr_ast.app e1 y) *)
 
@@ -1405,7 +1407,6 @@ fun P : expr_ast.t -> Prop => expr_ast.t_rect P
 (* TODO try them with standard expr_ind first, just to see what happens, since that case
    is less complicated. *)
 
-(* TODO:
  Lemma star_app2_expr_ind :
     forall e1 e2 e2',
       value.t e1 -> (* new _ : value.t e1 *)
@@ -1415,9 +1416,9 @@ fun P : expr_ast.t -> Prop => expr_ast.t_rect P
     intros e1 e2 e2' Val1 Star. (* new Val1 : value.t eq *)
     revert e1 Val1. (* need to revert this too, now *)
     induction e2; intros e1 Val1.
+    - simpl.
     ...
   Qed.
-*)
 
 (* TODO also: Map to change in the other inductive type/induction principle *)
 
