@@ -661,6 +661,144 @@ Module step.
     constructor.
   Qed.
 
+  Print old.step.star_app2.
+
+  (*
+  star_app2 (e1 e2 e2' : expr.t) (Star : star e2 e2') :=
+    star_ind
+      e2
+      (fun e2'0 : expr.t => star (expr_ast.app e1 e2) (expr_ast.app e1 e2'0))
+      (star_refl (expr_ast.app e1 e2))
+      (fun (e0 e3 : expr.t) (H : t e0 e3) (_ : star e2 e0)
+           (IHStar : star (expr_ast.app e1 e2) (expr_ast.app e1 e0)) =>
+        star_trans
+          (expr_ast.app e1 e2)
+          (expr_ast.app e1 e0)
+          (expr_ast.app e1 e3)
+          (app2 e1 e0 e3 H)
+          IHStar) 
+      e2'
+      Star
+  : forall (e1 e2 e2' : expr.t),
+      star e2 e2' -> star (expr_ast.app e1 e2) (expr_ast.app e1 e2')
+  *)
+
+  Print star_app2.
+
+  (*
+  star_app2 (e1 e2 e2' : expr.t) (Val1 : value.t e1) (Star : star e2 e2') :=
+    star_ind
+      e2
+      (fun e2'0 : expr.t => star (expr_ast.app e1 e2) (expr_ast.app e1 e2'0))
+      (star_refl (expr_ast.app e1 e2))
+      (fun (e0 e3 : expr.t) (H : t e0 e3) (_ : star e2 e0)
+           (IHStar : star (expr_ast.app e1 e2) (expr_ast.app e1 e0)) =>
+        star_trans
+          (expr_ast.app e1 e2)
+          (expr_ast.app e1 e0)
+          (expr_ast.app e1 e3)
+          (app2 e1 e0 e3 Val1 H)
+          IHStar)
+      e2'
+      Star
+  : forall (e1 e2 e2' : expr.t),
+      value.t e1 ->
+      star e2 e2' -> star (expr_ast.app e1 e2) (expr_ast.app e1 e2')
+  *)
+
+  (*
+   * Without revert and with explicit structure, the patch becomes clearer.
+   * But note that this doesn't tell us generally how to repair an app2.
+   * This tells us how to repair an app2 inside of a star_ind.
+   *)
+
+   (* This is the specific instance we find: *)
+   Definition patch_instance (e1 e2 e2' : expr.t) (Val1 : value.t e1)
+                             (Star : star e2 e2') (e0 e3 : expr.t)
+                             (H : t e0 e3) (_ : star e2 e0)
+                             (IHStar : star (expr_ast.app e1 e2) (expr_ast.app e1 e0))
+                             (old : value.t e1 -> t e0 e3 -> t (expr_ast.app e1 e0) (expr_ast.app e1 e3)) :=
+     old Val1.
+
+  (*
+   * Just note this means we can control for where in the context the value is, now:
+   *)
+  Lemma star_app2_via_patch_instance :
+    forall e1 e2 e2',
+      value.t e1 ->
+      star e2 e2' ->
+      star (expr.app e1 e2) (expr.app e1 e2').
+  Proof.
+    intros e1 e2 e2' Val1 Star.
+    induction Star.
+    - constructor.
+    - apply star_trans with (e2 := expr_ast.app e1 e0).
+      + apply (patch_instance e1 e2 e0 Val1 Star e0 e3 H Star IHStar).
+        * apply app2.
+        * apply H.
+      + apply IHStar.
+  Qed.
+
+  Print app2.
+
+  (* Probably, though, we don't want something specific to that induction
+     principle at all. We can just make a function that takes the extended value.
+     We can rely on the user to provide this for now, but determining it automatically
+     via a tactic should be straightforward if the old theorem exists (and we can
+     look through git to find it). It will be trivial in this case, again,
+     since this is the identity patch, but in some cases it won't be.
+     And it lets us keep the structure of our old proof.
+
+     So let's define one that just relies on the structure of app2 itself.
+     (Though to figure out it's identity, we'd need to look at the proof.)
+   *)
+  Definition patch_app2 (e1 : expr.t) (Val1 : value.t e1) :=
+    (fun (e2 e2' : expr.t) => app2 e1 e2 e2' Val1).
+
+    (*
+   * еще раз, с patch_app2
+   *)
+  Lemma star_app2_via_patch_app2 :
+    forall e1 e2 e2',
+      value.t e1 ->
+      star e2 e2' ->
+      star (expr.app e1 e2) (expr.app e1 e2').
+  Proof.
+    intros e1 e2 e2' Val1 Star.
+    induction Star.
+    - constructor.
+    - apply star_trans with (e2 := expr_ast.app e1 e0).
+      + apply (patch_app2 e1 Val1). (* where we had app2 before *)
+        apply H.
+      + apply IHStar.
+  Qed.
+
+  Print app2.
+
+  (*
+   * So really, there are two things going on:
+   * 1. From the context, how do we get a Val1?
+   * 2. Given a Val1, how do we apply it?
+   *
+   * (1) will depend on the induction principle we're inducting over,
+   * among other things, since that will change the context.
+   * In some proofs, we might want to recurse (refer to the IH) in order
+   * to find a Val1. In this case, we have a simple extension proof,
+   * so a Val1 is given to us to begin with. There might be a way to
+   * generalize this kind of patch where we have an extension,
+   * since it should always hold regardless of our induction principle.
+   * 
+   *
+   * (2) will depend on how we want to patch it. In this case,
+   * it's just identity, so we don't need to modify this at all.
+   *)
+
+  (*
+   * eh, though, this stuff is too hard without an example where we induct
+   * directly on those types.
+   * would really prefer to solve that case first.
+   *)
+
 End step.
 
 Module terminating.
@@ -748,54 +886,8 @@ End has_sem_type.
 
 End new.
 
-Print old.step.star_app2.
 
-(*
-star_app2 (e1 e2 e2' : expr.t) (Star : star e2 e2') :=
-  star_ind
-    e2
-    (fun e2'0 : expr.t => star (expr_ast.app e1 e2) (expr_ast.app e1 e2'0))
-    (star_refl (expr_ast.app e1 e2))
-    (fun (e0 e3 : expr.t) (H : t e0 e3) (_ : star e2 e0)
-         (IHStar : star (expr_ast.app e1 e2) (expr_ast.app e1 e0)) =>
-      star_trans
-        (expr_ast.app e1 e2)
-        (expr_ast.app e1 e0)
-        (expr_ast.app e1 e3)
-        (app2 e1 e0 e3 H)
-        IHStar) 
-    e2'
-    Star
-: forall (e1 e2 e2' : expr.t),
-    star e2 e2' -> star (expr_ast.app e1 e2) (expr_ast.app e1 e2')
-*)
 
-Print new.step.star_app2.
 
-(*
-star_app2 (e1 e2 e2' : expr.t) (Val1 : value.t e1) (Star : step.star e2 e2') :=
-  star_ind
-    e2
-    (fun e2'0 : expr.t => star (expr_ast.app e1 e2) (expr_ast.app e1 e2'0))
-    (star_refl (expr_ast.app e1 e2))
-    (fun (e0 e3 : expr.t) (H : t e0 e3) (_ : star e2 e0)
-         (IHStar : star (expr_ast.app e1 e2) (expr_ast.app e1 e0)) =>
-      star_trans
-        (expr_ast.app e1 e2)
-        (expr_ast.app e1 e0)
-        (expr_ast.app e1 e3)
-        (app2 e1 e0 e3 Val1 H)
-        IHStar)
-    e2'
-    Star
-: forall (e1 e2 e2' : expr.t),
-       value.t e1 ->
-       star e2 e2' -> star (expr_ast.app e1 e2) (expr_ast.app e1 e2')
-*)
 
-(*
- * Without revert and with explicit structure, the patch becomes clearer.
- * But note that this doesn't tell us generally how to repair an app2.
- * This tells us how to repair an app2 inside of a star_ind.
- *)
 
